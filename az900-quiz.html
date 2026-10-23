@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AZ-900 Smart Quiz Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --base: #0A1628;
+    --surface: #132040;
+    --card: #1C2E52;
+    --border: #2A3F6B;
+    --accent: #0EA5E9;
+    --accent2: #38BDF8;
+    --text: #F0F6FF;
+    --muted: #7B96C4;
+    --success: #22C55E;
+    --success-bg: #052e16;
+    --error: #EF4444;
+    --error-bg: #2d0a0a;
+    --warning: #F59E0B;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--base);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), #6366F1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .unofficial-badge {
+    font-size: 11px; font-weight: 500;
+    background: rgba(245,158,11,0.15);
+    color: var(--warning);
+    border: 1px solid rgba(245,158,11,0.3);
+    padding: 3px 8px; border-radius: 20px;
+  }
+  main { width: 100%; max-width: 720px; padding: 32px 20px 80px; flex: 1; }
+
+  /* HOME */
+  #screen-home { text-align: center; padding-top: 20px; }
+  .home-eyebrow { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.5px; margin-bottom: 16px; }
+  .home-title {
+    font-size: clamp(28px, 5vw, 44px); font-weight: 800; line-height: 1.1;
+    letter-spacing: -1px; margin-bottom: 16px;
+    background: linear-gradient(135deg, #F0F6FF 0%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .home-sub { font-size: 16px; color: var(--muted); line-height: 1.6; max-width: 480px; margin: 0 auto 40px; }
+  .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; text-align: left; }
+  .topic-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative; overflow: hidden;
+  }
+  .topic-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%; background: var(--accent); opacity: 0; transition: opacity 0.15s;
+  }
+  .topic-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .topic-card:hover::before { opacity: 1; }
+  .topic-card.selected { border-color: var(--accent); background: rgba(14,165,233,0.08); }
+  .topic-card.selected::before { opacity: 1; }
+  .topic-icon { font-size: 22px; margin-bottom: 10px; }
+  .topic-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .topic-count { font-size: 12px; color: var(--muted); }
+  .start-row { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #6366F1);
+    color: white; border: none; padding: 14px 40px; border-radius: 50px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s; letter-spacing: -0.2px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+  /* QUIZ */
+  #screen-quiz { display: none; }
+  .quiz-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-size: 13px; color: var(--muted); }
+  .quiz-topic-label { font-weight: 600; color: var(--accent); font-size: 13px; }
+  .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 28px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #6366F1); border-radius: 2px; transition: width 0.4s ease; }
+  .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; margin-bottom: 16px; }
+  .question-number { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .question-text { font-size: 18px; font-weight: 600; line-height: 1.5; letter-spacing: -0.2px; }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 14px 18px; text-align: left; cursor: pointer;
+    font-size: 15px; font-weight: 500; color: var(--text); font-family: inherit;
+    display: flex; align-items: flex-start; gap: 12px;
+    transition: border-color 0.12s, background 0.12s; line-height: 1.45;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(14,165,233,0.07); }
+  .option-letter {
+    width: 24px; height: 24px; min-width: 24px; border-radius: 50%;
+    background: var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    transition: background 0.12s, color 0.12s;
+  }
+  .option-btn:hover:not(:disabled) .option-letter { background: var(--accent); color: white; }
+  .option-btn.correct { border-color: var(--success); background: rgba(34,197,94,0.08); }
+  .option-btn.correct .option-letter { background: var(--success); color: white; }
+  .option-btn.incorrect { border-color: var(--error); background: rgba(239,68,68,0.08); }
+  .option-btn.incorrect .option-letter { background: var(--error); color: white; }
+  .option-btn.revealed:not(.correct):not(.incorrect) { opacity: 0.45; }
+  .option-btn:disabled { cursor: default; }
+
+  /* EXPLANATION */
+  .explanation-panel { border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; display: none; animation: slideIn 0.25s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .explanation-panel.correct-panel { background: var(--success-bg); border: 1px solid rgba(34,197,94,0.3); }
+  .explanation-panel.incorrect-panel { background: var(--error-bg); border: 1px solid rgba(239,68,68,0.25); }
+  .explanation-header { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+  .explanation-header.correct-header { color: var(--success); }
+  .explanation-header.incorrect-header { color: var(--error); }
+  .explanation-text { font-size: 14px; line-height: 1.65; color: var(--text); opacity: 0.9; }
+  .african-example {
+    margin-top: 12px; padding: 10px 14px;
+    background: rgba(14,165,233,0.08); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; font-size: 13px; color: var(--accent2); line-height: 1.55;
+  }
+  .african-example strong { color: var(--accent); display: block; margin-bottom: 3px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .next-btn-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .live-score { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 600; }
+  .live-score .score-correct { color: var(--success); }
+  .live-score .score-total { color: var(--muted); }
+
+  /* RESULTS */
+  #screen-results { display: none; }
+  .results-hero { text-align: center; padding: 32px 0 40px; }
+  .score-ring { width: 140px; height: 140px; margin: 0 auto 24px; position: relative; }
+  .score-ring svg { width: 140px; height: 140px; transform: rotate(-90deg); }
+  .score-ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+  .score-ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+  .results-verdict { font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; }
+  .results-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
+  .topic-breakdown { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+  .breakdown-header { padding: 16px 20px; font-size: 13px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; }
+  .breakdown-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-topic { font-size: 14px; font-weight: 500; flex: 1; }
+  .breakdown-bar-track { width: 120px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .breakdown-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), #6366F1); }
+  .breakdown-score { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 40px; text-align: right; }
+  .results-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  @media (max-width: 520px) {
+    .question-card { padding: 22px 18px; }
+    .question-text { font-size: 16px; }
+    .topic-grid { grid-template-columns: 1fr 1fr; }
+    .breakdown-bar-track { width: 70px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">☁</div>
+    AZ-900 Quiz
+  </div>
+  <span class="unofficial-badge">Unofficial Practice Tool</span>
+</header>
+
+<main>
+
+  <div id="screen-home">
+    <p class="home-eyebrow">Microsoft Azure Fundamentals</p>
+    <h1 class="home-title">Practice smarter.<br>Pass with confidence.</h1>
+    <p class="home-sub">Answer questions with instant feedback and clear explanations — organised by AZ-900 topic. Unofficial practice tool for the #1MillionDevs community.</p>
+    <div class="topic-grid" id="topic-grid"></div>
+    <div class="start-row">
+      <button class="btn-primary" id="start-btn" onclick="startQuiz()" disabled>Start Quiz</button>
+      <button class="btn-secondary" onclick="selectAll()">Select all topics</button>
+    </div>
+  </div>
+
+  <div id="screen-quiz">
+    <div class="quiz-meta">
+      <span class="quiz-topic-label" id="current-topic-label"></span>
+      <span class="live-score">
+        <span class="score-correct" id="live-correct">0</span>
+        <span class="score-total" id="live-total"> / 0 correct</span>
+      </span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="question-card">
+      <div class="question-number" id="question-number">Question 1 of 10</div>
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="options-list" id="options-list"></div>
+    <div class="explanation-panel" id="explanation-panel">
+      <div class="explanation-header" id="explanation-header"></div>
+      <div class="explanation-text" id="explanation-text"></div>
+      <div class="african-example" id="african-example"></div>
+    </div>
+    <div class="next-btn-row" id="next-btn-row" style="display:none">
+      <button class="btn-primary" id="next-btn" onclick="nextQuestion()">Next question →</button>
+    </div>
+  </div>
+
+  <div id="screen-results">
+    <div class="results-hero">
+      <div class="score-ring">
+        <svg viewBox="0 0 140 140">
+          <circle class="score-ring-bg" cx="70" cy="70" r="60"/>
+          <circle class="score-ring-fill" id="score-ring-fill" cx="70" cy="70" r="60" stroke-dasharray="377" stroke-dashoffset="377"/>
+        </svg>
+        <div class="score-number" id="score-number">0%</div>
+      </div>
+      <div class="results-verdict" id="results-verdict"></div>
+      <div class="results-sub" id="results-sub"></div>
+    </div>
+    <div class="topic-breakdown">
+      <div class="breakdown-header">Score by topic</div>
+      <div id="breakdown-rows"></div>
+    </div>
+    <div class="results-actions">
+      <button class="btn-primary" onclick="restartSame()">Retry same topics</button>
+      <button class="btn-secondary" onclick="goHome()">Change topics</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const TOPICS = [
+  {
+    id: 'cloud-concepts', name: 'Cloud Concepts', icon: '☁️',
+    questions: [
+      {
+        q: "Which cloud service model gives you the most control over the operating system and middleware?",
+        options: ["Software as a Service (SaaS)", "Platform as a Service (PaaS)", "Infrastructure as a Service (IaaS)", "Function as a Service (FaaS)"],
+        answer: 2,
+        explanation: "IaaS provides virtualised computing resources — virtual machines, storage, and networking — giving you full control over the OS, runtime, and middleware. You manage everything above the hypervisor. SaaS gives you the least control, and PaaS sits in between.",
+        african: "Think of IaaS like renting an empty shop in Nairobi — you install your own shelves, counters, and equipment. SaaS is like using M-Pesa: you just send money; Safaricom manages everything underneath."
+      },
+      {
+        q: "What is the primary benefit of cloud elasticity?",
+        options: ["Permanently increasing server capacity", "Automatically scaling resources up or down based on demand", "Reducing the number of physical servers a company owns", "Guaranteeing 100% uptime for all applications"],
+        answer: 1,
+        explanation: "Elasticity means cloud resources automatically scale in response to changing workloads — scaling up during peak demand and back down when demand drops. This prevents over-provisioning expensive resources.",
+        african: "During the Eid shopping rush in Lagos, an e-commerce site needs 10x more servers. With elasticity, Azure adds them automatically — then removes them after the holiday. No wasted spend."
+      },
+      {
+        q: "Which cloud deployment model keeps all resources on a company's own premises?",
+        options: ["Public cloud", "Hybrid cloud", "Private cloud", "Community cloud"],
+        answer: 2,
+        explanation: "A private cloud is operated exclusively for one organisation, either on-premises or hosted by a third party. All hardware and software are dedicated to that organisation. Public cloud shares infrastructure across many customers.",
+        african: "A Kenyan bank keeping customer data on their own data centre in Westlands is using a private cloud — meeting Central Bank of Kenya data residency requirements."
+      },
+      {
+        q: "Paying only for the computing resources you actually consume is known as:",
+        options: ["High availability", "Agility", "Consumption-based pricing", "Fault tolerance"],
+        answer: 2,
+        explanation: "Consumption-based pricing (pay-as-you-go) means you're charged for exactly what you use — CPU hours, GB of storage, network transfers — rather than paying upfront for capacity you may not need.",
+        african: "It's like buying data bundles in Ghana: you pay for 1GB and use exactly 1GB. Compare this to buying a router and full infrastructure upfront — that's the old CapEx way."
+      },
+      {
+        q: "Which term describes a system's ability to remain operational even when individual components fail?",
+        options: ["Scalability", "High availability", "Elasticity", "Agility"],
+        answer: 1,
+        explanation: "High availability refers to a system's ability to stay operational during failures. Azure achieves this through redundancy — running multiple copies of services across different hardware and data centres.",
+        african: "When one M-Pesa server goes down in Nairobi, your transaction still processes because Safaricom has servers in multiple locations. That redundancy is high availability in practice."
+      }
+    ]
+  },
+  {
+    id: 'azure-services', name: 'Core Azure Services', icon: '⚙️',
+    questions: [
+      {
+        q: "Which Azure service provides scalable, managed relational database hosting?",
+        options: ["Azure Cosmos DB", "Azure SQL Database", "Azure Blob Storage", "Azure Data Lake"],
+        answer: 1,
+        explanation: "Azure SQL Database is a fully managed relational database service based on SQL Server. It handles patching, backups, and high availability automatically. Cosmos DB is for NoSQL, Blob Storage is for unstructured files.",
+        african: "A Rwandan fintech startup storing loan records and customer accounts would use Azure SQL Database — familiar SQL syntax, without managing server maintenance."
+      },
+      {
+        q: "What does Azure Blob Storage primarily store?",
+        options: ["Virtual machine configurations", "Unstructured data like images, videos, and documents", "Relational database tables", "Network traffic logs"],
+        answer: 1,
+        explanation: "Azure Blob Storage is optimised for storing massive amounts of unstructured data — images, videos, backups, log files, documents. Blob stands for Binary Large Object. It's highly scalable and accessible via HTTP/HTTPS from anywhere.",
+        african: "A Ghanaian media company uploading hundreds of video interviews daily stores them in Blob Storage — cheap, scalable, and streamable directly to viewers across Africa."
+      },
+      {
+        q: "Which Azure compute service runs containerised apps without managing underlying VMs?",
+        options: ["Azure Virtual Machines", "Azure Kubernetes Service (AKS)", "Azure App Service", "Azure Functions"],
+        answer: 1,
+        explanation: "Azure Kubernetes Service (AKS) manages the complexity of running Kubernetes — the orchestration platform for containers. You deploy containers and AKS handles node management, scaling, and updates.",
+        african: "A Nigerian developer shipping microservices uses AKS — each service runs in its own container, AKS handles scaling when Lagos traffic spikes, without the team managing individual servers."
+      },
+      {
+        q: "Azure Functions is best described as:",
+        options: ["A VM service for running custom operating systems", "A serverless compute service that runs code in response to events", "A managed Kubernetes platform for containers", "A content delivery network for static assets"],
+        answer: 1,
+        explanation: "Azure Functions is a serverless compute offering — you write a function and Azure runs it in response to triggers like HTTP requests, timer schedules, or queue messages. You're billed only for execution time.",
+        african: "An Ethiopian startup triggers an Azure Function every time a payment comes in — it processes the receipt, sends an SMS, and updates a record. No server running 24/7; they pay for only 200ms of execution."
+      },
+      {
+        q: "Which service hosts a public-facing web app with built-in SSL, custom domains, and auto-scaling?",
+        options: ["Azure Virtual Machines", "Azure App Service", "Azure Blob Storage", "Azure Container Instances"],
+        answer: 1,
+        explanation: "Azure App Service is a fully managed platform for hosting web apps, REST APIs, and mobile backends. It provides load balancing, auto-scaling, SSL certificates, and custom domain support without managing infrastructure.",
+        african: "A South African e-commerce site selling sneakers hosts their React and Node.js app on Azure App Service — SSL handled, scales during Black Friday, no DevOps team needed."
+      }
+    ]
+  },
+  {
+    id: 'security', name: 'Security & Compliance', icon: '🔒',
+    questions: [
+      {
+        q: "What is the purpose of Azure Active Directory (Microsoft Entra ID)?",
+        options: ["Managing virtual network configurations", "Providing identity and access management for cloud resources", "Monitoring application performance", "Storing encrypted passwords"],
+        answer: 1,
+        explanation: "Microsoft Entra ID (formerly Azure AD) is Microsoft's cloud-based identity and access management service. It handles authentication (who you are) and authorisation (what you can do) for users, apps, and devices.",
+        african: "When a Kenyan bank employee logs in from Nairobi, Entra ID verifies their identity, checks MFA, and grants access only to resources their role allows. It's the security gatekeeper."
+      },
+      {
+        q: "Which Azure feature protects against Distributed Denial of Service (DDoS) attacks?",
+        options: ["Azure Key Vault", "Azure DDoS Protection", "Azure Firewall", "Microsoft Defender for Cloud"],
+        answer: 1,
+        explanation: "Azure DDoS Protection defends Azure resources by monitoring traffic and automatically mitigating attacks. It has two tiers: Basic (free, enabled by default) and Standard (advanced protection with telemetry).",
+        african: "During a major Afcon final, a Ugandan sports streaming platform faced a DDoS attack. Azure DDoS Protection automatically absorbed and filtered the malicious traffic without human intervention."
+      },
+      {
+        q: "What does the principle of least privilege mean in Azure security?",
+        options: ["Giving all users administrator access to simplify management", "Granting users only the minimum permissions needed to do their job", "Encrypting all data at rest using Azure Key Vault", "Requiring MFA for every login attempt"],
+        answer: 1,
+        explanation: "Least privilege means users and applications receive only the permissions they need for their specific tasks. In Azure, this is implemented through Role-Based Access Control (RBAC) — assigning specific roles like Reader, Contributor, or Owner.",
+        african: "A junior developer at a Tanzanian startup gets Contributor access only to the dev resource group — not production. A billing admin can view invoices but can't touch application code. Least privilege in practice."
+      },
+      {
+        q: "Azure Key Vault is primarily used to:",
+        options: ["Store virtual machine snapshots", "Securely store and manage secrets, keys, and certificates", "Monitor security threats across Azure resources", "Control inbound and outbound network traffic"],
+        answer: 1,
+        explanation: "Azure Key Vault is a centralised, secure store for application secrets (API keys, passwords, connection strings), encryption keys, and SSL/TLS certificates. It eliminates the dangerous practice of hardcoding secrets in application code.",
+        african: "A Mozambican payments startup stores their M-Pesa API key in Azure Key Vault. Their app retrieves it at runtime — safe even if their GitHub repo is accidentally made public."
+      },
+      {
+        q: "What does Microsoft Defender for Cloud primarily provide?",
+        options: ["Automatic encryption of all storage accounts", "Unified security management and threat protection across Azure resources", "User identity and access policy management", "Billing and cost anomaly monitoring"],
+        answer: 1,
+        explanation: "Microsoft Defender for Cloud provides continuous security assessment, threat protection, and recommendations across Azure and multicloud environments. It shows a Secure Score — a metric of your overall security posture.",
+        african: "A Nigerian bank running Defender for Cloud gets a real-time security score. When misconfigured storage permissions appear, Defender flags them immediately with one-click remediation — before attackers find them."
+      }
+    ]
+  },
+  {
+    id: 'pricing', name: 'Pricing & Support', icon: '💰',
+    questions: [
+      {
+        q: "Which tool estimates the monthly cost of Azure services before deploying them?",
+        options: ["Azure Cost Management", "Azure Pricing Calculator", "Azure Advisor", "Total Cost of Ownership Calculator"],
+        answer: 1,
+        explanation: "The Azure Pricing Calculator lets you configure services and get estimated monthly costs before committing. You can select regions, instance sizes, and usage patterns to build a realistic cost estimate.",
+        african: "Before a Kenyan startup spins up Azure infrastructure, their CTO uses the Pricing Calculator to compare East US vs South Africa North regions — finding the most cost-effective option for their users."
+      },
+      {
+        q: "What is the purpose of Azure Reserved Instances?",
+        options: ["Guaranteeing premium support response times", "Committing to 1 or 3 years of resource use in exchange for significant discounts", "Reserving a specific physical server for exclusive use", "Locking in a fixed data transfer rate across regions"],
+        answer: 1,
+        explanation: "Azure Reserved VM Instances let you reserve compute capacity for 1 or 3 years, receiving up to 72% discount versus pay-as-you-go pricing. Best for predictable, steady-state workloads.",
+        african: "A Ugandan company running their ERP system 24/7 buys a 3-year Reserved Instance — same server, 60% cheaper than hourly billing. The savings fund hiring two more engineers."
+      },
+      {
+        q: "Which Azure support plan provides the fastest response time for critical business issues?",
+        options: ["Basic", "Developer", "Standard", "Unified (formerly Premier)"],
+        answer: 3,
+        explanation: "Microsoft's Unified (formerly Premier) support plan provides under 15-minute response times for Severity A critical cases with 24/7 coverage. Basic support provides only documentation and community forums.",
+        african: "An airline using Azure for booking across Africa needs Unified support — if their system goes down at 2am, a 15-minute response is the difference between a recoverable incident and front-page news."
+      },
+      {
+        q: "Azure Service Level Agreements (SLAs) define:",
+        options: ["The exact cost of each Azure service per hour", "Microsoft's commitments for uptime and connectivity for each service", "The maximum number of VMs per subscription", "Data residency requirements for compliance"],
+        answer: 1,
+        explanation: "Azure SLAs are formal commitments by Microsoft guaranteeing minimum uptime and availability percentages. If Azure fails to meet the SLA, customers receive service credits. Most services guarantee 99.9% to 99.99% uptime.",
+        african: "Azure VMs with Availability Zones carry a 99.99% SLA — less than 53 minutes of allowed downtime per year. A South African bank plans their disaster recovery around this commitment."
+      },
+      {
+        q: "The Total Cost of Ownership (TCO) Calculator helps organisations:",
+        options: ["Calculate real-time Azure spending", "Compare the cost of on-premises workloads versus Azure", "Estimate the cost of a new Azure service before deployment", "Monitor budget alerts and spending forecasts"],
+        answer: 1,
+        explanation: "The TCO Calculator compares total on-premises infrastructure costs (servers, storage, networking, labour, facilities) against equivalent Azure solutions. It builds the financial case for cloud migration.",
+        african: "A Zimbabwean company with aging servers uses the TCO Calculator to show their board: maintaining on-prem costs $400k per year including power and IT staff. Azure costs $180k. The migration business case writes itself."
+      }
+    ]
+  },
+  {
+    id: 'governance', name: 'Governance & Management', icon: '📋',
+    questions: [
+      {
+        q: "What is the purpose of Azure Policy?",
+        options: ["Managing user identities and login credentials", "Enforcing organisational rules and standards across Azure resources", "Monitoring application performance and uptime", "Setting spending limits on Azure subscriptions"],
+        answer: 1,
+        explanation: "Azure Policy lets organisations create and assign rules that enforce compliance across Azure resources — for example, preventing resources from being created outside approved regions, or requiring all storage to be encrypted.",
+        african: "A Kenyan financial institution uses Azure Policy to enforce that no resource can be created outside South Africa North — meeting data sovereignty requirements under the Kenya Data Protection Act 2019."
+      },
+      {
+        q: "Azure Resource Groups are best described as:",
+        options: ["Virtual networks grouping Azure services by geography", "Logical containers grouping related Azure resources for management", "Billing units aggregating costs across subscriptions", "Security boundaries isolating resources from each other"],
+        answer: 1,
+        explanation: "Resource Groups are logical containers holding related resources for an application or solution. They enable you to manage, monitor, and control costs for resources together. Deleting a resource group deletes all resources inside it.",
+        african: "A Nigerian e-commerce startup creates a Resource Group called 'production-lagos' containing their web app, database, and storage — making it easy to monitor costs and manage access for everything in production."
+      },
+      {
+        q: "What does Role-Based Access Control (RBAC) in Azure control?",
+        options: ["The physical location where Azure data is stored", "Who can access Azure resources and what actions they can perform", "Network traffic routing between Azure services", "Automatic scaling of virtual machines"],
+        answer: 1,
+        explanation: "Azure RBAC manages access to resources by assigning roles (Owner, Contributor, Reader, or custom roles) to users, groups, or service principals at a specific scope — subscription, resource group, or resource level.",
+        african: "At a Ghanaian healthtech company, the finance team has Reader access to billing only. Developers have Contributor access to dev environments only. RBAC keeps each team in their lane."
+      },
+      {
+        q: "Which service provides a unified view of governance across multiple Azure subscriptions?",
+        options: ["Azure Monitor", "Microsoft Defender for Cloud", "Azure Policy", "Azure Management Groups"],
+        answer: 3,
+        explanation: "Azure Management Groups provide a level of scope above subscriptions. You can organise subscriptions into groups and apply governance conditions — policies, access control — to the entire group at once.",
+        african: "A Pan-African bank with Azure subscriptions in Nigeria, Kenya, Ghana, and South Africa uses Management Groups to apply a single security policy across all regions — one rule, enforced everywhere."
+      },
+      {
+        q: "Azure Blueprints help organisations:",
+        options: ["Monitor real-time resource performance", "Deploy and update compliant environments consistently using templates", "Calculate the estimated cost of Azure deployments", "Encrypt data in transit between Azure services"],
+        answer: 1,
+        explanation: "Azure Blueprints enable teams to define a repeatable set of Azure resources and policies — RBAC assignments, policy assignments, and ARM templates — and deploy them consistently across subscriptions.",
+        african: "A Rwandan government agency uses Azure Blueprints so every new project environment deploys with the correct security policies, network isolation, and audit logging — consistently, without manual configuration."
+      }
+    ]
+  }
+];
+
+let selectedTopics = [];
+let quizQuestions = [];
+let currentIndex = 0;
+let correctCount = 0;
+let answered = false;
+let topicScores = {};
+
+function init() {
+  const grid = document.getElementById('topic-grid');
+  TOPICS.forEach(topic => {
+    const card = document.createElement('div');
+    card.className = 'topic-card';
+    card.id = 'topic-' + topic.id;
+    card.onclick = () => toggleTopic(topic.id, card);
+    card.innerHTML = `<div class="topic-icon">${topic.icon}</div><div class="topic-name">${topic.name}</div><div class="topic-count">${topic.questions.length} questions</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function toggleTopic(id, card) {
+  const idx = selectedTopics.indexOf(id);
+  if (idx === -1) { selectedTopics.push(id); card.classList.add('selected'); }
+  else { selectedTopics.splice(idx, 1); card.classList.remove('selected'); }
+  document.getElementById('start-btn').disabled = selectedTopics.length === 0;
+}
+
+function selectAll() {
+  selectedTopics = [];
+  TOPICS.forEach(t => { selectedTopics.push(t.id); document.getElementById('topic-' + t.id).classList.add('selected'); });
+  document.getElementById('start-btn').disabled = false;
+}
+
+function startQuiz() {
+  quizQuestions = [];
+  topicScores = {};
+  selectedTopics.forEach(topicId => {
+    const topic = TOPICS.find(t => t.id === topicId);
+    const shuffled = [...topic.questions].sort(() => Math.random() - 0.5);
+    shuffled.forEach(q => quizQuestions.push({ ...q, topicId, topicName: topic.name }));
+    topicScores[topicId] = { name: topic.name, correct: 0, total: 0 };
+  });
+  quizQuestions.sort(() => Math.random() - 0.5);
+  currentIndex = 0; correctCount = 0; answered = false;
+  show('screen-quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizQuestions[currentIndex];
+  const total = quizQuestions.length;
+  answered = false;
+  document.getElementById('progress-fill').style.width = ((currentIndex / total) * 100) + '%';
+  document.getElementById('current-topic-label').textContent = q.topicName;
+  document.getElementById('question-number').textContent = 'Question ' + (currentIndex + 1) + ' of ' + total;
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('live-correct').textContent = correctCount;
+  document.getElementById('live-total').textContent = ' / ' + currentIndex + ' correct';
+  const letters = ['A','B','C','D'];
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = '<span class="option-letter">' + letters[i] + '</span><span>' + opt + '</span>';
+    btn.onclick = () => selectAnswer(i, btn);
+    list.appendChild(btn);
+  });
+  const panel = document.getElementById('explanation-panel');
+  panel.style.display = 'none';
+  panel.className = 'explanation-panel';
+  document.getElementById('next-btn-row').style.display = 'none';
+  document.getElementById('next-btn').textContent = currentIndex === quizQuestions.length - 1 ? 'See results →' : 'Next question →';
+}
+
+function selectAnswer(selectedIndex) {
+  if (answered) return;
+  answered = true;
+  const q = quizQuestions[currentIndex];
+  const isCorrect = selectedIndex === q.answer;
+  const buttons = document.querySelectorAll('.option-btn');
+  topicScores[q.topicId].total++;
+  if (isCorrect) { correctCount++; topicScores[q.topicId].correct++; }
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === selectedIndex && !isCorrect) btn.classList.add('incorrect');
+    else btn.classList.add('revealed');
+  });
+  const panel = document.getElementById('explanation-panel');
+  const header = document.getElementById('explanation-header');
+  panel.style.display = 'block';
+  panel.className = 'explanation-panel ' + (isCorrect ? 'correct-panel' : 'incorrect-panel');
+  header.className = 'explanation-header ' + (isCorrect ? 'correct-header' : 'incorrect-header');
+  header.innerHTML = isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. The correct answer is: <em>' + q.options[q.answer] + '</em>';
+  document.getElementById('explanation-text').textContent = q.explanation;
+  const ex = document.getElementById('african-example');
+  if (q.african) { ex.style.display = 'block'; ex.innerHTML = '<strong>African Context</strong>' + q.african; }
+  else { ex.style.display = 'none'; }
+  document.getElementById('live-correct').textContent = correctCount;
+  document.getElementById('live-total').textContent = ' / ' + (currentIndex + 1) + ' correct';
+  document.getElementById('next-btn-row').style.display = 'flex';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= quizQuestions.length) showResults();
+  else { renderQuestion(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+}
+
+function showResults() {
+  show('screen-results');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const total = quizQuestions.length;
+  const pct = Math.round((correctCount / total) * 100);
+  const circumference = 377;
+  const offset = circumference - (pct / 100) * circumference;
+  const ring = document.getElementById('score-ring-fill');
+  let color = '#EF4444';
+  if (pct >= 80) color = '#22C55E';
+  else if (pct >= 60) color = '#F59E0B';
+  ring.style.stroke = color;
+  setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+  const numEl = document.getElementById('score-number');
+  numEl.textContent = pct + '%';
+  numEl.style.color = color;
+  let verdict, sub;
+  if (pct >= 85) { verdict = '🎉 Exam Ready!'; sub = correctCount + ' of ' + total + ' correct — you\'re well prepared for AZ-900.'; }
+  else if (pct >= 70) { verdict = '💪 Almost there!'; sub = correctCount + ' of ' + total + ' correct — a bit more revision and you\'ve got this.'; }
+  else if (pct >= 50) { verdict = '📚 Keep studying!'; sub = correctCount + ' of ' + total + ' correct — focus on the topics where you scored lowest.'; }
+  else { verdict = '🔄 Back to the books!'; sub = correctCount + ' of ' + total + ' correct — review the core concepts and try again.'; }
+  document.getElementById('results-verdict').textContent = verdict;
+  document.getElementById('results-sub').textContent = sub;
+  const rows = document.getElementById('breakdown-rows');
+  rows.innerHTML = '';
+  Object.values(topicScores).forEach(ts => {
+    if (ts.total === 0) return;
+    const tp = Math.round((ts.correct / ts.total) * 100);
+    const row = document.createElement('div');
+    row.className = 'breakdown-row';
+    row.innerHTML = '<span class="breakdown-topic">' + ts.name + '</span><div class="breakdown-bar-track"><div class="breakdown-bar-fill" style="width:' + tp + '%"></div></div><span class="breakdown-score">' + ts.correct + '/' + ts.total + '</span>';
+    rows.appendChild(row);
+  });
+}
+
+function show(screenId) {
+  ['screen-home','screen-quiz','screen-results'].forEach(id => {
+    document.getElementById(id).style.display = id === screenId ? 'block' : 'none';
+  });
+}
+
+function goHome() { show('screen-home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function restartSame() { startQuiz(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+init();
+</script>
+</body>
+</html>
